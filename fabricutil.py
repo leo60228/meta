@@ -24,6 +24,34 @@ variants = {
         "intermediary_uid": "net.legacyfabric.intermediary",
         "exclude": ["fabric-loader"],
     },
+    "minecraft-cursed-legacy": {
+        "name": "Cursed Fabric Loader",
+        "description": "Fabric Loader for Beta 1.7.3.",
+        "url": "https://minecraft-cursed-legacy.github.io",
+        "authors": ["Cursed Minecraft Legacy Developers"],
+        "meta": "http://localhost:5555",
+        "maven": "https://storage.googleapis.com/devan-maven",
+        "loader_uid": "io.github.minecraft-cursed-legacy.cursed-fabric-loader",
+        "intermediary_uid": "io.github.minecraft-cursed-legacy.intermediary",
+        "exclude": ["fabric-loader"],
+        "skip_update": True,
+        "intermediary_override": {
+            "b1.7.3": {
+                "name": "io.github.minecraft-cursed-legacy:intermediary:b1.7.3",
+                "MMC-absoluteUrl": "https://gist.github.com/leo60228/e7de61c54cc35a86a84a4c864291c237/raw/b1.7.3.jar",
+            },
+            "1.2.5": {
+                "name": "io.github.minecraft-cursed-legacy:intermediary:1.2.5",
+                "MMC-absoluteUrl": "https://gist.github.com/leo60228/e7de61c54cc35a86a84a4c864291c237/raw/1.2.5.jar",
+            },
+        },
+        "extra_loader_options": {
+            "minecraftArguments": "--username ${auth_player_name} --session ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets}",
+            "addTraits": [
+                "noapplet"
+            ],
+        },
+    },
 }
 
 # barebones semver-like parser

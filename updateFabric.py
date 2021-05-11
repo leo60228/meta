@@ -4,6 +4,7 @@ from cachecontrol import CacheControl
 import datetime
 import hashlib, json
 import zipfile
+import sys
 from fabricutil import *
 
 from cachecontrol.caches import FileCache
@@ -62,15 +63,19 @@ def compute_jar_file(path, url):
     with open(path + ".json", 'w') as outfile:
         json.dump(data.to_json(), outfile, sort_keys=True, indent=4)
 
-for variantName, variant in variants.items():
+def processVariant(variantName, variant):
+    print(f"--- {variantName} ---")
+
     mkdirs(f"upstream/{variantName}/meta-v2")
     mkdirs(f"upstream/{variantName}/loader-installer-json")
     mkdirs(f"upstream/{variantName}/jars")
 
-    print(f"--- {variantName} ---")
+    components = ["intermediary", "loader"]
+    if "intermediary_override" in variant:
+        components = ["loader"]
 
     # get the version list for each component we are interested in
-    for component in ["intermediary", "loader"]:
+    for component in components:
         print(f"Downloading {component} versions...")
         index = get_json_file(f"upstream/{variantName}/meta-v2/" + component + ".json", f"{variant['meta']}/v2/versions/" + component)
         for it in index:
@@ -93,3 +98,12 @@ for variantName, variant in variants.items():
             print(f"Downloading {it['maven']} installer metadata...")
             mavenUrl = get_maven_url(it["maven"], variant["maven"], ".json")
             get_json_file(f"upstream/{variantName}/loader-installer-json/" + it["version"] + ".json", mavenUrl)
+
+if len(sys.argv) > 1:
+    variantName = sys.argv[1]
+    variant = variants[variantName]
+    processVariant(variantName, variant)
+else:
+    for variantName, variant in variants.items():
+        if not variant.get("skip_update", False):
+            processVariant(variantName, variant)

@@ -24,7 +24,12 @@ def processLoaderVersion(loaderVersion, it, loaderData, variantName, variant):
     if (len(loaderRecommended) < 1) and verStable:
         loaderRecommended.append(loaderVersion)
     versionJarInfo = loadJarInfo(it["maven"], variantName)
-    version = MultiMCVersionFile(name=variant["name"], uid=variant["loader_uid"], version=loaderVersion)
+
+    extraOptions = {}
+    if "extra_loader_options" in variant:
+        extraOptions = variant["extra_loader_options"]
+
+    version = MultiMCVersionFile(name=variant["name"], uid=variant["loader_uid"], version=loaderVersion, **extraOptions)
     version.releaseTime = versionJarInfo.releaseTime
     version.requires = [DependencyEntry(uid=variant["intermediary_uid"])]
     version.order = 10
@@ -45,16 +50,22 @@ def processLoaderVersion(loaderVersion, it, loaderData, variantName, variant):
 
 def processIntermediaryVersion(it, variantName, variant):
     intermediaryRecommended.append(it["version"])
-    versionJarInfo = loadJarInfo(it["maven"], variantName)
     version = MultiMCVersionFile(name="Intermediary Mappings", uid=variant["intermediary_uid"], version=it["version"])
-    version.releaseTime = versionJarInfo.releaseTime
     version.requires = [DependencyEntry(uid='net.minecraft', equals=it["version"])]
     version.order = 11
     version.type = "release"
     version.libraries = []
     version.volatile = True
-    mappingLib = MultiMCLibrary(name=GradleSpecifier(it["maven"]), url=variant["maven"])
-    version.libraries.append(mappingLib)
+
+    if "intermediary_override" in variant:
+        mappingLib = MultiMCLibrary(variant["intermediary_override"][it["version"]])
+        version.libraries.append(mappingLib)
+    else:
+        versionJarInfo = loadJarInfo(it["maven"], variantName)
+        version.releaseTime = versionJarInfo.releaseTime
+        mappingLib = MultiMCLibrary(name=GradleSpecifier(it["maven"]), url=variant["maven"])
+        version.libraries.append(mappingLib)
+
     intermediaryVersions.append(version)
 
 for variantName, variant in variants.items():
@@ -83,11 +94,16 @@ for variantName, variant in variants.items():
                 processLoaderVersion(version, it, ldata, variantName, variant)
 
     print("Processing Intermediary versions...")
-    with open(f"upstream/{variantName}/meta-v2/intermediary.json", 'r', encoding='utf-8') as intermediaryVersionIndexFile:
-        intermediaryVersionIndex = json.load(intermediaryVersionIndexFile)
-        for it in intermediaryVersionIndex:
-            print(f"Processing {it['version']}...")
-            processIntermediaryVersion(it, variantName, variant)
+    if "intermediary_override" in variant:
+        for version in variant["intermediary_override"]:
+            print(f"Processing {version}...")
+            processIntermediaryVersion({"version": version}, variantName, variant)
+    else:
+        with open(f"upstream/{variantName}/meta-v2/intermediary.json", 'r', encoding='utf-8') as intermediaryVersionIndexFile:
+            intermediaryVersionIndex = json.load(intermediaryVersionIndexFile)
+            for it in intermediaryVersionIndex:
+                print(f"Processing {it['version']}...")
+                processIntermediaryVersion(it, variantName, variant)
 
     print("Writing loader versions...")
     for version in loaderVersions:
